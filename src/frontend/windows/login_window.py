@@ -1,7 +1,7 @@
 from PyQt5 import QtWidgets, QtCore
 from .window import Window
-from ..frontend.login_ui import LoginUi
-from ..backend.client import Client
+from frontend.ui.login_ui import LoginUi
+from backend.client import Client
 
 
 class LoginWindow(Window):
@@ -68,8 +68,8 @@ class ConnectThread(QtCore.QThread):
         client = Client(self.name)
         client.connect(self.ip, self.port)
         response = client.recv()
-        if response.startswith("Connection Refused"):
-            self.rejected.emit(response)
+        if response.msg.startswith("Connection Refused"):
+            self.rejected.emit(response.msg)
         else:
             self.accepted.emit(client)
 

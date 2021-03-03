@@ -3,6 +3,10 @@ from .widgets import QGrowingTextEdit
 
 
 class ChatUi(object):
+    selfmsg_style = "background-color:#93ffa0; border: 3px solid #93ffa0; border-radius: 8px"
+    othermsg_style = "border: 3px solid white; border-radius: 8px"
+    servermsg_style = "background-color:#dddddd; border: 3px solid #dddddd; border-radius: 8px"
+
     def setup_ui(self, window):
         self.window = window
         self.window.setObjectName("Window")

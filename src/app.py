@@ -1,8 +1,8 @@
-# Chat client app with a graphical user interface.
+# GUI frontend to the chat client app.
 from PyQt5 import QtWidgets, QtCore
 import sys
-from chat.windows.login_window import LoginWindow
-from chat.windows.chat_window import ChatWindow
+from frontend.windows.login_window import LoginWindow
+from frontend.windows.chat_window import ChatWindow
 
 # **********************
 DEFAULT_IP = '127.0.0.1'
@@ -22,7 +22,7 @@ class Application():
         self.client = login_window.data['client']
 
         chat_window = ChatWindow(args={'client': self.client})
-        chat_window.exec()
+        chat_window.exec()  # Runs until user disconnects from the chat
         try: self.client.send('/quit')
         except BrokenPipeError: pass  # socket already closed
 
