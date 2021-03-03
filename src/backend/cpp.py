@@ -37,7 +37,6 @@ def send(sock, cpp_msg):
     elif type(cpp_msg) is ServerMsg: datatype = DataType.SERVERMSG.value
     elif type(cpp_msg) is Cmd: datatype = cpp_msg.cmd
     elif cpp_msg is None: datatype = cpp_msg = Cmd(DataType.CMD_QUIT)  # Quit
-    print(f"SEND: type:{datatype}, size:{datasize}, data:{data}")
     sock.send(struct.pack('>BI', datatype, datasize) + data)
 
 
@@ -47,7 +46,6 @@ def recv(sock):
     try:
         datatype, data = _recv_raw(sock)
         if datatype is None: return None
-        print(f"RECV: datatype:{datatype}, data:{data}")
         if datatype == DataType.MSG.value:
             return data.decode()
         elif datatype == DataType.SERVERMSG.value:
@@ -135,7 +133,6 @@ class ServerMsg:
         timestamp, namesize = struct.unpack_from(">fH", data)
         name = data[floatshort_size:floatshort_size + namesize].decode()
         msg = data[floatshort_size + namesize:].decode()
-        print(f"DE: {timestamp}, {name}, {msg}")
         return ServerMsg(msg, timestamp, name)
 
     def encode(self):

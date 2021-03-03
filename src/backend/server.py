@@ -133,7 +133,7 @@ class Server:
             self.unicast(executer, cpp.ServerMsg("Error - Invalid input, try /help."))
 
     def execute_help(self, executer):
-        self.unicast(executer, cpp.ServerMsg(self.help_html(time.strftime('%H:%M'))))
+        self.unicast(executer, cpp.ServerMsg(self.help_html()))
 
     def execute_quit(self, executer):
         self.broadcast(cpp.ServerMsg(f"{executer.name} left the chat."))
@@ -180,12 +180,11 @@ class Server:
         for member in self.group:
             cpp_msg = self.recv(member)
             if cpp_msg is not None:
-                print("RECV:", cpp_msg)
                 self.handle(member, cpp_msg)
 
-    def help_html(self, time):
+    def help_html(self):
         return \
-            f'''SERV<html><head /><body>
+            f'''<html><head /><body>
         <p>List of commands:</p>
         <p><span style=" font-weight:600;">/help</span> - display this text.</p>
         <p><span style=" font-weight:600;">/quit</span> - quit the chat group.</p>
@@ -203,7 +202,6 @@ class Server:
         <p><span style=" font-weight:600; text-decoration: underline;">/unmute</span><span
                         style=" font-style:italic;"> [name]</span> - make a member able to send messages.</p>
         <p>* Underlined commands require manager permissions.</p>
-        <p align="right"><span style=" font-size:7pt; color:#000000;">{time}</span></p>
         </body></html>'''
 
 

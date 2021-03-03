@@ -1,5 +1,4 @@
-from time import gmtime, strftime
-from backend import client
+from time import localtime, strftime
 from backend.client import Client
 from backend import cpp
 from PyQt5 import QtWidgets, QtCore
@@ -34,39 +33,7 @@ class ChatWindow(Window):
             msgBrowser.setMaximumWidth(self.ui.msgArea.size().width() - 30)
             msgBrowser.adjustSize()
 
-    # def display_msg(self, html):
-    #     print("HTML:\n" + html)
-    #     msgtype = html[:4]
-    #     html = html[4:]
-    #     move_scrollbar = False
-    #     scrollbar = self.ui.msgArea.verticalScrollBar()
-    #     if scrollbar.value() == scrollbar.maximum():
-    #         move_scrollbar = True
-    #     msgBrowser = QGrowingTextBrowser(self.ui.msgScrollAreaWidgetContents)
-    #     msgBrowser.setStyleSheet("border: 3px solid white; border-radius: 8px")
-    #     if msgtype == "SELF":
-    #         msgBrowser.setStyleSheet("background-color:#93ffa0; border: 3px solid #93ffa0; border-radius: 8px")
-    #         self.ui.msgVLayout.addWidget(msgBrowser, 0, QtCore.Qt.AlignRight)
-    #     elif msgtype == "SERV":
-    #         msgBrowser.setStyleSheet("background-color:#dddddd; border: 3px solid #dddddd; border-radius: 8px")
-    #         self.ui.msgVLayout.addWidget(msgBrowser, 0, QtCore.Qt.AlignCenter)
-    #     else:  # msgtype == "MESG"
-    #         self.ui.msgVLayout.addWidget(msgBrowser)
-    #     msgBrowser.setMaximumHeight(150)
-    #     msgBrowser.setHtml(html)
-    #     self.ui.msgs.append(msgBrowser)
-    #     self.resize_event(self.ui.window)
-    #     if move_scrollbar:
-    #         scrollbar.setValue(scrollbar.maximum())
-
     def display_msg(self, msgtype, html):
-        #     html = f'''</head>
-        # <body style=" font-family:\'Sans Serif\'; font-size:9pt; font-weight:400; font-style:normal;">
-        # </p>HEY<p align="right"
-        # style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">
-        # <span style=" font-size:7pt; color:#353535;">HH:MM</span></p>
-        # </body>
-        # </html>'''
         msgBrowser = QGrowingTextBrowser(self.ui.msgScrollAreaWidgetContents)
         if msgtype == MsgType.SELF:
             style = self.ui.selfmsg_style
@@ -96,7 +63,7 @@ class ChatWindow(Window):
         self.display_msg(msgtype, self.html_format(msgtype, cpp_msg))
 
     def html_format(self, msgtype, cpp_msg):
-        time = strftime("%H:%M", gmtime(cpp_msg.timestamp))
+        time = strftime("%H:%M", localtime(cpp_msg.timestamp))
         msg = cpp_msg.msg
         name = cpp_msg.name
         color = "#00557f"
@@ -108,14 +75,6 @@ style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -q
 <span style=" font-size:7pt; color:#353535;">{time}</span></p>
 </body>
 </html>'''
-            return \
-                f'''</head>
-    <body style=" font-family:\'Sans Serif\'; font-size:9pt; font-weight:400; font-style:normal;">
-    </p>{msg}<p align="right"
-    style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">
-    <span style=" font-size:7pt; color:#353535;">{time}</span></p>
-    </body>
-    </html>'''
         elif msgtype == MsgType.OTHER:
             return \
                 f'''</head>
