@@ -1,19 +1,19 @@
-Structure of a message in CCP (Chat Program Protocol):
+1. Structure of a message in CPP (Chat Program Protocol):
        __________________________________________
 index: |0            0|1            4|5      N+4|    sizes are in bytes.
 field: |  [datatype]  | [datasize=N] |  [data]  |    big endian format.
-size:  |______1_______|_____4________|____N_____|
+size:  |______1_______|_______4______|____N_____|
 
 [datatype] - the type of data (explanation below).
 [datasize] - the size in bytes of [data], >=1.
-[data] - variable sized data, interpreted according to [type].
+[data] - variable sized data, interpreted according to [datatype].
 
 Note: Some messsage types do not require the [data] field.
       Therefore, for some values of [datatype], the field [datasize] is 0 and [data] is omitted. 
 
 
 [data] structure for each [datatype] value:
-    MSG - [datatype]=0 :     ___________
+   MSG - [datatype]=0 :      ___________
                              |5     N+4|
                              |  [msg]  |
                              |____N____|
@@ -23,12 +23,17 @@ Note: Some messsage types do not require the [data] field.
                              | [timestamp] | [namesize=L] |  [name]  |  [msg]  |
                              |______4______|______2_______|_____L____|__N-L-6__|
 
-    TELL - [datatype]=129 :  ___________________________________
+   BYTES - [datatype=2]:     ___________
+                             |5     N+4|
+                             | [bytes] |
+                             |____N____|
+
+   TELL - [datatype=129] :   ___________________________________
                              |5            6|7    L+6|L+7   N+4|
                              | [namesize=L] | [name] |  [msg]  |
                              |______2_______|___L____|__N-L-2__|
 
-    KICK \ PROMOTE \ DEMOTE \ MUTE \ UNMUTE - [datatype]=130\131\132\133\134 :
+   KICK \ PROMOTE \ DEMOTE \ MUTE \ UNMUTE - [datatype]=130\131\132\133\134 :
                              ____________
                              |5      N+4|
                              |  [name]  |
@@ -39,6 +44,16 @@ Note: Some messsage types do not require the [data] field.
     QUIT - [datatype]=194 :  *[data] omitted*
 
     VIEW - [datatype]=195 :  *[data] omitted*
+
+
+2. CPPS (Chat Program Protocol Secure)
+CPPS provides a security layer to the regular CP protocol.
+CPPS messages are AES-encrypted CPP messages, therefore their structure is uniform. 
+Structure of a message in CPPS (Chat Program Protocol Secure):
+       ___________________________________________________________________
+index: |0            3|4           19|20          35|36               N+3|    sizes are in bytes.
+field: | [datasize=N] |   [nonce]    |    [tag]     |  [ecncrypted-msg]  |    big endian format.
+size:  |______4_______|______16______|______16______|________N-32________|
 
 
 

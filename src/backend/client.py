@@ -3,8 +3,11 @@ import socket
 import sys
 import queue
 import struct
-from backend import cpp
+from time import sleep
 from time import gmtime, strftime, struct_time
+from Crypto.PublicKey import RSA
+from backend import cpp
+
 
 #########################
 DEFAULT_IP = '127.0.0.1'
@@ -34,8 +37,12 @@ class Client:
     def __init__(self, name):
         """params:
         name - client's name, will be displayed when sending messages.
-        admin - pass
         """
+        # Generate RSA private and public key:
+        self.privkey = RSA.generate(1024)
+        self.pubkey = self.privkey.public_key()
+        self.aeskey = None  # used to encrypt session, will be sent by the server upon connection
+
         self.name = name
         self.srv_soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.msg_que = queue.Queue()
@@ -43,14 +50,26 @@ class Client:
     def connect(self, ip, port):
         self.srv_soc.connect((ip, port))
         self.send(self.name)
+        self.send(self.pubkey.export_key().decode())
+        print(f"SENT PUBKEY: {self.pubkey.export_key()}")
 
     def send(self, cpp_msg):
         """send a CPP message to the server.
         """
         cpp.send(self.srv_soc, cpp_msg)
 
+    def ssend(self, cpp_msg):
+        """send a CPPS message to the server.
+        receives CPPS msg and encrpyts it
+        """
+        cpp.ssend(self.srv_soc, self.aeskey, cpp_msg)
+
     def recv(self):
         return cpp.recv(self.srv_soc)
+
+    def srecv(self):
+        return cpp.srecv(self.srv_soc, self.aeskey)
+
 
 
 def main():

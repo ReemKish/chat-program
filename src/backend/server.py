@@ -8,6 +8,9 @@ import queue
 from random import choice
 import cpp
 from group import Group, Member  # implemented in group.py
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import AES, PKCS1_OAEP
+from Crypto.Random import get_random_bytes
 
 #########################
 DEFAULT_PORT = 8000  # port defaults to this if not given by the user
@@ -30,6 +33,10 @@ class Server:
     COLORS = ["#aa0000", "#005500", "#00007f", "#aa007f", "#00557f", "#550000", "#b07500", "#00aa00"]
 
     def __init__(self):
+        # Generate AES key to encrypt all communication with clients:
+        self.aeskey = get_random_bytes(16)
+        print(self.aeskey)
+        
         self.group = Group()
         self.accept_soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.pending_que = queue.Queue()
@@ -48,16 +55,20 @@ class Server:
             conn = self.pending_que.get_nowait()
         except queue.Empty:  # no pending members to add
             return
-        name = self.recv(conn)
+        name = self.recv(conn, secure=False)
+        time.sleep(0.05)
+        pubkey = RSA.import_key(self.recv(conn, secure=False))
         if type(name) == str and name:
             name = name.strip()
             if name in self.group:
-                msg = "Connection Refused: Name is already taken."
-                cpp.send(conn, cpp.ServerMsg(msg))
+                cpp.send(conn, cpp.ServerMsg("Connection Refused: Name is already taken."))
                 conn.close()
             else:
+                enc_aeskey = PKCS1_OAEP.new(pubkey).encrypt(self.aeskey)
+                cpp.send(conn, enc_aeskey)
+                print(f"RECEIVED PUBKEY: {pubkey.export_key()}")
                 color = choice(Server.COLORS)
-                self.group.add(name, conn, color, name in self.MANAGER_NAMES)
+                self.group.add(name, pubkey, conn, color, name in self.MANAGER_NAMES)
                 self.broadcast(cpp.ServerMsg(f"{self.group[name]} joined the chat."))
                 self.unicast(self.group[name], cpp.ServerMsg("Tip: Type /help to display available commands."))
                 if len(self.group) == 1:  # make first member to join the chat a manager
@@ -77,7 +88,7 @@ class Server:
         """send a CPP message to a specific member.
         """
         try:
-            cpp.send(member.conn, cpp_msg)
+            cpp.ssend(member.conn, self.aeskey, cpp_msg)
         except socket.error:  # connection has likely been closed
             self.group.kick(member)
             self.broadcast(cpp.ServerMsg(f"{member.name} left the chat."))
@@ -89,10 +100,13 @@ class Server:
             if member not in exclude:
                 self.unicast(member, cpp_msg)
 
-    def recv(self, origin):
+    def recv(self, origin, secure=True):
         if type(origin) is Member:
             origin = origin.conn
-        return cpp.recv(origin)
+        if secure:
+            return cpp.srecv(origin, self.aeskey)
+        else:
+            return cpp.recv(origin)
 
     def handle(self, member, cpp_msg):
         if type(cpp_msg) is cpp.Cmd:
@@ -178,9 +192,13 @@ class Server:
 
     def do(self):
         for member in self.group:
-            cpp_msg = self.recv(member)
-            if cpp_msg is not None:
-                self.handle(member, cpp_msg)
+            if member.conn.fileno() == -1:
+                    self.group.kick(member)
+            else:
+                cpp_msg = self.recv(member)
+                if cpp_msg is not None:
+                    self.handle(member, cpp_msg)
+                
 
     def help_html(self):
         return \

@@ -6,6 +6,7 @@ from .window import Window
 from frontend.ui.chat_ui import ChatUi
 from frontend.ui.widgets import QGrowingTextBrowser
 from enum import Enum
+from colorsys import hls_to_rgb
 
 
 class MsgType(Enum):
@@ -20,6 +21,7 @@ class ChatWindow(Window):
         self.client = self.args['client']
         self.recv_thread = RecvThread(self.client)
         self.recv_thread.received.connect(self.received_string)
+        self.recv_thread.daemon  = True
         self.recv_thread.start()
 
     def extend_ui(self):
@@ -57,16 +59,26 @@ class ChatWindow(Window):
             scrollbar.setValue(scrollbar.maximum())
 
     def handle_msg(self, cpp_msg):
-        if not cpp_msg.name: msgtype = MsgType.SERVER
-        elif cpp_msg.name == self.client.name: msgtype = MsgType.SELF
-        else: msgtype = MsgType.OTHER
+        if not cpp_msg.name:
+            msgtype = MsgType.SERVER
+        elif cpp_msg.name == self.client.name:
+            msgtype = MsgType.SELF
+        else:
+            msgtype = MsgType.OTHER
         self.display_msg(msgtype, self.html_format(msgtype, cpp_msg))
+
+    def name_to_color(self, name):
+        """Calculates and returns a member's name color
+        """
+        k = hash(name)*6 % 360
+        r,g,b = tuple(round(y*256) for y in hls_to_rgb(k/360,.3,.9))
+        return f"#{r:02x}{g:02x}{b:02x}"
 
     def html_format(self, msgtype, cpp_msg):
         time = strftime("%H:%M", localtime(cpp_msg.timestamp))
         msg = cpp_msg.msg
         name = cpp_msg.name
-        color = "#00557f"
+        color = self.name_to_color(name)
         if msgtype == MsgType.SELF:
             return \
                 f'''</head>
@@ -104,23 +116,31 @@ style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -q
                 self.send_cmd(msg_plain)
             else:
                 # self.client.send(msg_plain)
-                self.client.send(msg_html)
+                self.client.ssend(msg_html)
         self.ui.msgInput.clear()
         self.ui.msgInput.setFocus()
 
     def send_cmd(self, cmdline):
         args = cmdline.split(" ")
         cmdname, args = args[0].lower(), args[1:]
+        print(f"CMDLINE: {cmdline}\n CMDNAME:{cmdname}\n args:{args}")
+
         try:
             cmdtype = Client.COMMANDS[cmdname]
         except KeyError:
             return
-        if len(args) == 0: cmd = cpp.Cmd(cmdtype)
-        elif len(args) == 1: cmd = cpp.Cmd(cmdtype, args[0])
-        elif len(args) >= 2: cmd = cpp.Cmd(cmdtype, args[0], args[1])
-        self.client.send(cmd)
+        if len(args) == 0:
+            cmd = cpp.Cmd(cmdtype)
+        elif len(args) == 1:
+            cmd = cpp.Cmd(cmdtype, args[0])
+        elif len(args) >= 2:
+            cmd = cpp.Cmd(cmdtype, args[0], " ".join(args[1:]))
+        self.client.ssend(cmd)
+        if cmdtype == cpp.DataType.CMD_QUIT.value:
+            self.close()
 
     def received_string(self, cpp_msg):
+        print(f"RECEIVED CPP_MSG: {cpp_msg}")
         if not cpp_msg:  # kicked by server
             self.close()
         else:
@@ -129,24 +149,35 @@ style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -q
     def close(self):
         """Closes the program.
         """
+        self.recv_thread.stop()
         self.ui.window.close()
+
+    def closeEvent(self, event):
+        print("WHATTHEFUCJ")
+        self.close()
+        event.accept()
 
 
 class RecvThread(QtCore.QThread):
     """Thread responsible for receiving data from the server.
     """
 
-    received = QtCore.pyqtSignal(object)  # stored string details the cause of rejection.
+    # stored string details the cause of rejection.
+    received = QtCore.pyqtSignal(object)
 
     def __init__(self, client):
         super().__init__()
         super().__init__(parent=self)
         self.client = client
+        self.listen = True
 
     def run(self):
-        while True:
-            cpp_msg = self.client.recv()
+        while self.listen:
+            cpp_msg = self.client.srecv()
             self.received.emit(cpp_msg)
+    
+    def stop(self):
+        self.listen = False
 
 
 if __name__ == "__main__":
