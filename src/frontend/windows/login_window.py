@@ -2,7 +2,8 @@ from PyQt5 import QtWidgets, QtCore
 from .window import Window
 from frontend.ui.login_ui import LoginUi
 from backend.client import Client
-
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import AES, PKCS1_OAEP
 
 class LoginWindow(Window):
     def __init__(self, args=dict()):
@@ -68,9 +69,12 @@ class ConnectThread(QtCore.QThread):
         client = Client(self.name)
         client.connect(self.ip, self.port)
         response = client.recv()
-        if response.msg.startswith("Connection Refused"):
+        if type(response) is not bytearray and response.msg.startswith("Connection Refused"):
             self.rejected.emit(response.msg)
         else:
+            enc_aeskey = response
+            client.aeskey = PKCS1_OAEP.new(client.privkey).decrypt(enc_aeskey)
+            print(client.aeskey)
             self.accepted.emit(client)
 
 

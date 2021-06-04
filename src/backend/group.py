@@ -46,7 +46,8 @@ class Member(object):
     This structure stores information about a group's member.
     """
 
-    def __init__(self, name, conn, color="#000000", is_manager=False, is_muted=False):
+    def __init__(self, name, pubkey, conn, color="#000000", is_manager=False, is_muted=False):
+        self.pubkey = pubkey
         self.name = name
         self.conn = conn
         self.color = color

@@ -1,6 +1,7 @@
 # GUI frontend to the chat client app.
-from PyQt5 import QtWidgets, QtCore
 import sys
+from PyQt5 import QtWidgets, QtCore
+from time import sleep
 from frontend.windows.login_window import LoginWindow
 from frontend.windows.chat_window import ChatWindow
 
@@ -23,7 +24,8 @@ class Application():
 
         chat_window = ChatWindow(args={'client': self.client})
         chat_window.exec()  # Runs until user disconnects from the chat
-        try: self.client.send('/quit')
+        print("CLOSED")
+        try: self.client.ssend('/quit')
         except BrokenPipeError: pass  # socket already closed
 
 
