@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-import socket
 import sys
+import socket
 import queue
 import struct
 from time import sleep

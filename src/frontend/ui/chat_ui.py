@@ -1,9 +1,9 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
-from .widgets import QGrowingTextEdit
+from .widgets import QGrowingTextEdit, QFileButton
 
 
 class ChatUi(object):
-    selfmsg_style = "background-color:#93ffa0; border: 3px solid #93ffa0; border-radius: 8px"
+    selfmsg_style = "background-color:#93ffa0; border: 3px solid #93ffa0; border-radius: 8px; "
     othermsg_style = "border: 3px solid white; border-radius: 8px"
     servermsg_style = "background-color:#dddddd; border: 3px solid #dddddd; border-radius: 8px"
 
@@ -40,12 +40,16 @@ class ChatUi(object):
         self.sendButton.setObjectName("sendButton")
         self.sendButton.setCursor(QtCore.Qt.PointingHandCursor)
         self.inputHLayout.addWidget(self.sendButton, 0, QtCore.Qt.AlignBottom)
+        # file-attachment button:
+        self.fileButton = QFileButton(self.centralwidget)
+        self.fileButton.setObjectName("fileButton")
+        self.fileButton.setCursor(QtCore.Qt.PointingHandCursor)
+        self.inputHLayout.addWidget(self.fileButton, 0, QtCore.Qt.AlignBottom)
+        # window layout;
         self.mainVLayout.addLayout(self.inputHLayout)
         self.window.setCentralWidget(self.centralwidget)
         self.window.resizeEvent = self.resize_event
 
-        # msg = QtWidgets.QLabel(self.centralwidget)
-        # msg.setText("lol")
         self.style()
         self.retranslateUi(self.window)
         QtCore.QMetaObject.connectSlotsByName(self.window)
@@ -59,6 +63,7 @@ class ChatUi(object):
         Window.setWindowTitle(_translate("Window", "Chat"))
         self.msgInput.setPlaceholderText(_translate("Window", "Type a message"))
         self.sendButton.setText(_translate("Window", "Send"))
+        self.fileButton.setText(_translate("Window", "Attach file"))
 
     def style(self):
         scrollbar_style = '''

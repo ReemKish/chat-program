@@ -13,6 +13,7 @@ class DataType(enum.Enum):
     MSG = 0
     SERVERMSG = 1
     BYTES = 2
+    FILE_PART = 3
     MASK_CMD = 128  # mask to filter command data types
 
     CMD_TELL = 128
@@ -138,6 +139,53 @@ class Cmd:
 
 
 class ServerMsg:
+    def __init__(self, msg, timestamp=None, name=""):
+        self.msg = msg
+        self.timestamp = timestamp if timestamp else time()
+        self.name = name
+
+    @staticmethod
+    def decode(data):
+        """Decodes the [data] part of a CPP msg of type SERVERMSG into a ServerMsg object.
+        """
+        floatshort_size = struct.calcsize("fH")
+        timestamp, namesize = struct.unpack_from(">fH", data)
+        name = data[floatshort_size:floatshort_size + namesize].decode()
+        msg = data[floatshort_size + namesize:].decode()
+        return ServerMsg(msg, timestamp, name)
+
+    def get_data(self):
+        """Encodes the msg into a byte-array that is the [data] part of a CPP msg of type SERVERMSG.
+        """
+        namesize = len(self.name)
+        data = struct.pack('>fH', self.timestamp, namesize) + self.name.encode() + self.msg.encode()
+        return data
+
+class FileAttachment:
+    def __init__(self, msg, file_descriptor, timestamp=None, name=""):
+        self.msg = msg
+        self.file_descriptor = file_descriptor
+        self.timestamp = timestamp if timestamp else time()
+        self.name = name
+
+    @staticmethod
+    def decode(data):
+        """Decodes the [data] part of a CPP msg of type SERVERMSG into a ServerMsg object.
+        """
+        floatshort_size = struct.calcsize("fH")
+        timestamp, namesize = struct.unpack_from(">fH", data)
+        name = data[floatshort_size:floatshort_size + namesize].decode()
+        msg = data[floatshort_size + namesize:].decode()
+        return ServerMsg(msg, timestamp, name)
+
+    def get_data(self):
+        """Encodes the msg into a byte-array that is the [data] part of a CPP msg of type SERVERMSG.
+        """
+        namesize = len(self.name)
+        data = struct.pack('>fH', self.timestamp, namesize) + self.name.encode() + self.msg.encode()
+        return data
+
+class FilePart:
     def __init__(self, msg, timestamp=None, name=""):
         """data is the byte array to be parse.
         """

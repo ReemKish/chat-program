@@ -13,31 +13,36 @@ Note: Some messsage types do not require the [data] field.
 
 
 [data] structure for each [datatype] value:
-   MSG - [datatype]=0 :      ___________
-                             |5     N+4|
-                             |  [msg]  |
-                             |____N____|
+   MSG - [datatype]=0 :            ___________
+                                   |5     N+4|
+                                   |  [msg]  |
+                                   |____N____|
 
-   SERVERMSG - [datatype=1]: ___________________________________________________
-                             |5           8|9           10|11    L+10|L+11  N+4|
-                             | [timestamp] | [namesize=L] |  [name]  |  [msg]  |
-                             |______4______|______2_______|_____L____|__N-L-6__|
+   SERVERMSG - [datatype=1]:       ___________________________________________________
+                                   |5           8|9           10|11    L+10|L+11  N+4|
+                                   | [timestamp] | [namesize=L] |  [name]  |  [msg]  |
+                                   |______4______|______2_______|_____L____|__N-L-6__|
 
-   BYTES - [datatype=2]:     ___________
-                             |5     N+4|
-                             | [bytes] |
-                             |____N____|
+   BYTES - [datatype=2]:           ___________
+                                   |5     N+4|
+                                   | [bytes] |
+                                   |____N____|
 
-   TELL - [datatype=129] :   ___________________________________
-                             |5            6|7    L+6|L+7   N+4|
-                             | [namesize=L] | [name] |  [msg]  |
-                             |______2_______|___L____|__N-L-2__|
+   FILE_ATTACH - [datatype=3]:     ___________
+                                   |5     N+4|
+                                   | [bytes] |
+                                   |____N____|
+
+   TELL - [datatype=129] :         ___________________________________
+                                   |5            6|7    L+6|L+7   N+4|
+                                   | [namesize=L] | [name] |  [msg]  |
+                                   |______2_______|___L____|__N-L-2__|
 
    KICK \ PROMOTE \ DEMOTE \ MUTE \ UNMUTE - [datatype]=130\131\132\133\134 :
-                             ____________
-                             |5      N+4|
-                             |  [name]  |
-                             |____N_____|
+                                   ____________
+                                   |5      N+4|
+                                   |  [name]  |
+                                   |____N_____|
 
     HELP - [datatype]=193 :  *[data] omitted*
 

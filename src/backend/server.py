@@ -11,6 +11,7 @@ from group import Group, Member  # implemented in group.py
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.Random import get_random_bytes
+from pathlib import Path
 
 #########################
 DEFAULT_PORT = 8000  # port defaults to this if not given by the user
@@ -36,7 +37,7 @@ class Server:
         # Generate AES key to encrypt all communication with clients:
         self.aeskey = get_random_bytes(16)
         print(self.aeskey)
-        
+        self.curr_file_desc = 0
         self.group = Group()
         self.accept_soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.pending_que = queue.Queue()
@@ -112,10 +113,33 @@ class Server:
         if type(cpp_msg) is cpp.Cmd:
             self.execute_command(member, cpp_msg)
         elif type(cpp_msg) is str and not member.is_muted:
+            if cpp_msg.startswith("DOWNLOAD:"):
+                file_descriptor = int(cpp_msg.split(':', 1)[1])
+                self.send_file(member, file_descriptor)
+                return
+            if cpp_msg.startswith("FILE:"):
+                filepath = cpp_msg.split(':', 1)[1]
+                self.curr_file_desc += 1
+                cpp_msg = f"FILE:{self.curr_file_desc}:{filepath}"
             self.broadcast(cpp.ServerMsg(cpp_msg, name=member.name), exclude=[member])
             self.unicast(member, cpp.ServerMsg(cpp_msg, name=member.name))
+        elif type(cpp_msg) is bytes:
+            self.download_file(cpp_msg)
         elif member.is_muted:
             self.unicast(member, cpp.ServerMsg("Error - You are muted, message was not sent."))
+
+    def send_file(self, member, file_descriptor):
+        filepath = f"./data/{file_descriptor}"
+        with open(filepath, 'rb') as file:
+            data = file.read()
+            file.close()
+        self.unicast(member, data)
+
+    def download_file(self, data):
+        Path(f"./data").mkdir(parents=True, exist_ok=True)
+        file = open(f"./data/{self.curr_file_desc}", 'wb')
+        file.write(data)
+        file.close()
 
     def execute_command(self, executer, cmd):
 
@@ -198,7 +222,6 @@ class Server:
                 cpp_msg = self.recv(member)
                 if cpp_msg is not None:
                     self.handle(member, cpp_msg)
-                
 
     def help_html(self):
         return \
