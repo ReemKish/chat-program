@@ -57,7 +57,7 @@ class Server:
         except queue.Empty:  # no pending members to add
             return
         name = self.recv(conn, secure=False)
-        time.sleep(0.05)
+        time.sleep(0.5)
         pubkey = RSA.import_key(self.recv(conn, secure=False))
         if type(name) == str and name:
             name = name.strip()
@@ -67,14 +67,13 @@ class Server:
             else:
                 enc_aeskey = PKCS1_OAEP.new(pubkey).encrypt(self.aeskey)
                 cpp.send(conn, enc_aeskey)
-                print(f"RECEIVED PUBKEY: {pubkey.export_key()}")
                 color = choice(Server.COLORS)
                 self.group.add(name, pubkey, conn, color, name in self.MANAGER_NAMES)
                 self.broadcast(cpp.ServerMsg(f"{self.group[name]} joined the chat."))
                 self.unicast(self.group[name], cpp.ServerMsg("Tip: Type /help to display available commands."))
                 if len(self.group) == 1:  # make first member to join the chat a manager
                     self.group[name].is_manager = True
-                print("#DEBUG# added member " + name + " #members = " + str(len(self.group)))
+                print("#DEBUG# added member " + name + "| #members = " + str(len(self.group)))
 
     def accept_connections(self):
         while True:
@@ -83,7 +82,7 @@ class Server:
             self.pending_que.put(conn)
             print(
                 "#DEBUG# accepted connection. #pending_connections = " + str(self.pending_que.qsize()))
-            time.sleep(0.05)
+            time.sleep(0.1)
 
     def unicast(self, member, cpp_msg):
         """send a CPP message to a specific member.
@@ -217,11 +216,15 @@ class Server:
     def do(self):
         for member in self.group:
             if member.conn.fileno() == -1:
-                    self.group.kick(member)
+                self.group.kick(member)
             else:
-                cpp_msg = self.recv(member)
-                if cpp_msg is not None:
-                    self.handle(member, cpp_msg)
+                try:
+                    cpp_msg = self.recv(member)
+                    if cpp_msg is not None:
+                        self.handle(member, cpp_msg)
+                except ConnectionError:
+                    self.group.kick(member)
+                
 
     def help_html(self):
         return \
