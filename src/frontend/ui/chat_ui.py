@@ -33,7 +33,7 @@ class ChatUi(object):
         # text msg input:
         self.msgInput = QGrowingTextEdit(self.centralwidget)
         self.msgInput.setObjectName("msgInput")
-        self.msgInput.setMaximumHeight(self.window.size().height() / 2)
+        self.msgInput.setMaximumHeight(self.window.size().height() // 2)
         self.inputHLayout.addWidget(self.msgInput)
         # send-message button:
         self.sendButton = QtWidgets.QPushButton(self.centralwidget)
@@ -55,7 +55,7 @@ class ChatUi(object):
         QtCore.QMetaObject.connectSlotsByName(self.window)
 
     def resize_event(self, event):
-        self.msgInput.setMaximumHeight(event.size().height() / 2)
+        self.msgInput.setMaximumHeight(event.size().height() // 2)
         self.msgInput.adjustHeight()
 
     def retranslateUi(self, Window):
