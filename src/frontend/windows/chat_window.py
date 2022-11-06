@@ -28,6 +28,8 @@ class ChatWindow(Window):
         self.ui.msgs = []
         self.ui.sendButton.clicked.connect(self.send_msg)
         self.ui.window.resizeEvent = self.resize_event
+        self.ui.msgInput.send = self.send_msg
+        self.ui.msgInput.cmds = Client.COMMANDS
 
     def resize_event(self, event):
         self.ui.resize_event(event)

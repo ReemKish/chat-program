@@ -6,7 +6,8 @@ from frontend.windows.login_window import LoginWindow
 from frontend.windows.chat_window import ChatWindow
 
 # **********************
-DEFAULT_IP = '3.82.67.94'
+# DEFAULT_IP = '3.82.67.94'
+DEFAULT_IP = '127.0.0.1'
 DEFAULT_PORT = 8000
 # **********************
 

@@ -2,8 +2,8 @@
 # Custom widgets designed for specific usage in the program.
 
 from PyQt5 import QtWidgets, QtGui, QtCore
+from PyQt5.QtCore import Qt
 from time import sleep
-import PyQt5
 import ntpath
 import random
 
@@ -30,7 +30,7 @@ class QGrowingTextEdit(QtWidgets.QTextEdit):
     """A TextEdit widgets that dynamically adjusts its size to fit its contents.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, send=None, **kwargs):
         super(QGrowingTextEdit, self).__init__(*args, **kwargs)
 
         self.height_min = 0
@@ -38,6 +38,24 @@ class QGrowingTextEdit(QtWidgets.QTextEdit):
 
         self.document().contentsChanged.connect(self.adjustHeight)
         self.setFocus()
+        self.send = send
+        self.cmds = []
+
+    def keyPressEvent(self, e: QtGui.QKeyEvent) -> None:
+        k = e.key()
+        if k == Qt.Key_Return and not e.modifiers():
+            if self.send: self.send()
+        elif k == Qt.Key_Tab:
+            tc = self.textCursor()
+            text = self.toPlainText()
+            if text.startswith('/'):
+                for cmd in self.cmds:
+                    if cmd.startswith(text):
+                        tc.insertText(cmd[len(text):])
+                        return
+            tc.insertText('    ')
+        else:
+            return super().keyPressEvent(e)
 
     def adjustHeight(self):
         docHeight = self.document().size().height()
