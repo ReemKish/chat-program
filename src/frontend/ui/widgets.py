@@ -41,6 +41,7 @@ class QGrowingTextEdit(QtWidgets.QTextEdit):
 
     def adjustHeight(self):
         docHeight = self.document().size().height()
+        docHeight = int(docHeight)
         if self.height_min <= docHeight <= self.height_max:
             self.setFixedHeight(docHeight + 2)
         elif docHeight < self.height_min:
@@ -137,6 +138,7 @@ class QGrowingTextBrowser(QtWidgets.QTextBrowser):
 
     def adjustHeight(self):
         height = self.document().size().height()
+        height = int(height)
         if self.height_min <= height <= self.height_max:
             self.setFixedHeight(height + 6)
         elif height < self.height_min:
@@ -146,6 +148,7 @@ class QGrowingTextBrowser(QtWidgets.QTextBrowser):
 
     def adjustWidth(self):
         width = QtGui.QFontMetrics(self.document().defaultFont()).size(0, self.toPlainText()).width() + 30  # +30 to show hour
+        width = int(width)
         if self.width_min <= width <= self.width_max:
             self.setFixedWidth(width)
         elif width < self.width_min:
