@@ -125,7 +125,6 @@ style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -q
     def send_cmd(self, cmdline):
         args = cmdline.split(" ")
         cmdname, args = args[0].lower(), args[1:]
-        print(f"CMDLINE: {cmdline}\n CMDNAME:{cmdname}\n args:{args}")
 
         try:
             cmdtype = Client.COMMANDS[cmdname]
@@ -142,7 +141,6 @@ style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -q
             self.close()
 
     def received_string(self, cpp_msg):
-        print(f"RECEIVED CPP_MSG: {cpp_msg}")
         if not cpp_msg:  # kicked by server
             self.close()
         else:
@@ -155,7 +153,6 @@ style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -q
         self.ui.window.close()
 
     def closeEvent(self, event):
-        print("WHATTHEFUCJ")
         self.close()
         event.accept()
 

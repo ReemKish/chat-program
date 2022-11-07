@@ -74,7 +74,6 @@ class ConnectThread(QtCore.QThread):
         else:
             enc_aeskey = response
             client.aeskey = PKCS1_OAEP.new(client.privkey).decrypt(enc_aeskey)
-            print(client.aeskey)
             self.accepted.emit(client)
 
 

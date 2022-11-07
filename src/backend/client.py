@@ -26,6 +26,7 @@ class Client:
     COMMANDS = {"/help": cpp.DataType.CMD_HELP.value,
                 "/quit": cpp.DataType.CMD_QUIT.value,
                 "/view-managers": cpp.DataType.CMD_VIEW.value,
+                "/list": cpp.DataType.CMD_LIST.value,
                 "/tell": cpp.DataType.CMD_TELL.value,
                 "/kick": cpp.DataType.CMD_KICK.value,
                 "/promote": cpp.DataType.CMD_PROMOTE.value,
@@ -51,7 +52,6 @@ class Client:
         self.srv_soc.connect((ip, port))
         self.send(self.name)
         self.send(self.pubkey.export_key().decode())
-        print(f"SENT PUBKEY: {self.pubkey.export_key()}")
 
     def send(self, cpp_msg):
         """send a CPP message to the server.

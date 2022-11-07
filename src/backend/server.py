@@ -12,6 +12,7 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.Random import get_random_bytes
 from pathlib import Path
+import os
 
 #########################
 DEFAULT_PORT = 8000  # port defaults to this if not given by the user
@@ -36,7 +37,6 @@ class Server:
     def __init__(self):
         # Generate AES key to encrypt all communication with clients:
         self.aeskey = get_random_bytes(16)
-        print(self.aeskey)
         self.curr_file_desc = 0
         self.group = Group()
         self.accept_soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -47,9 +47,13 @@ class Server:
         self.accept_soc.listen(1)
         threading.Thread(target=self.accept_connections).start()
         while True:
-            self.add_pending_member()
-            self.do()
-            time.sleep(0.05)
+            try:
+                self.add_pending_member()
+                self.do()
+                time.sleep(0.05)
+            except KeyboardInterrupt:
+                pid = os.getpid()
+                os.kill(pid, 9)
 
     def add_pending_member(self):
         try:
@@ -73,15 +77,12 @@ class Server:
                 self.unicast(self.group[name], cpp.ServerMsg("Tip: Type /help to display available commands."))
                 if len(self.group) == 1:  # make first member to join the chat a manager
                     self.group[name].is_manager = True
-                print("#DEBUG# added member " + name + "| #members = " + str(len(self.group)))
 
     def accept_connections(self):
         while True:
             conn, _ = self.accept_soc.accept()
             conn.setblocking(0)
             self.pending_que.put(conn)
-            print(
-                "#DEBUG# accepted connection. #pending_connections = " + str(self.pending_que.qsize()))
             time.sleep(0.1)
 
     def unicast(self, member, cpp_msg):
@@ -152,6 +153,8 @@ class Server:
             self.execute_quit(executer)
         elif cmd.cmd == cpp.DataType.CMD_VIEW.value:
             self.execute_view_managers(executer)
+        elif cmd.cmd == cpp.DataType.CMD_LIST.value:
+            self.execute_list(executer)
         elif cmd.name not in self.group:
             self.unicast(executer, cpp.ServerMsg(f"Error - '{cmd.name}' is not in the group."))
         elif cmd.cmd == cpp.DataType.CMD_TELL.value:
@@ -178,7 +181,21 @@ class Server:
 
     def execute_view_managers(self, executer):
         manager_list = map(lambda memb: str(memb), filter(lambda memb: memb.is_manager, self.group))
-        self.unicast(executer, cpp.ServerMsg("Managers: " + ", ".join(manager_list)))
+        self.unicast(executer, cpp.ServerMsg(f'''
+            <p style='text-align:center'>
+                <u>Managers</u>
+                <p>{'<br />'.join(manager_list)}</p>
+            </p> 
+            '''))
+    
+    def execute_list(self, executer):
+        user_list = map(lambda memb: str(memb), self.group)
+        self.unicast(executer, cpp.ServerMsg(f'''
+            <p style='text-align:center'>
+                <u>Online Users</u>
+                <p>{'<br />'.join(user_list)}</p>
+            </p> 
+            '''))
 
     def execute_tell(self, executer, name, msg):
         if executer.is_muted:

@@ -17,10 +17,6 @@ cipher = AES.new(aeskey, AES.MODE_EAX)
 nonce = cipher.nonce
 ciphertext, tag = cipher.encrypt_and_digest(SECRET)
 
-print(nonce)
-print(tag)
-print(ciphertext)
-
 # decrypt AES key with RSA private key
 dec_cipher = PKCS1_OAEP.new(privkey)
 dec_aeskey = dec_cipher.decrypt(enc_aeskey)

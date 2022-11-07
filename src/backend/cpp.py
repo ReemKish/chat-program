@@ -29,6 +29,7 @@ class DataType(enum.Enum):
     CMD_HELP = 192
     CMD_QUIT = 193
     CMD_VIEW = 194  # view managers
+    CMD_LIST = 195  # list users
 
 
 def encode(cpp_msg):
@@ -100,7 +101,6 @@ class Cmd:
         self.cmd = cmd
         self.name = name
         self.msg = msg
-        print(f"new CMD: {cmd}, {name}, {msg}")
 
     @staticmethod
     def decode(cmd, data):
@@ -110,13 +110,10 @@ class Cmd:
         """
         name = msg = ""
         if cmd == DataType.CMD_TELL.value:
-            print(f"DATA: {data}")
             namesize = struct.unpack_from(">H", data)[0]
-            print(f"NAMEIZE: {namesize}")
             shortsize = struct.calcsize("H")
             name = data[shortsize:shortsize + namesize].decode()
             msg = data[shortsize + namesize:].decode()
-            print(f"name: {name}  ---  msg: {msg}")
         elif cmd & DataType.MASK_CMD_ONEARG.value == DataType.MASK_CMD_ONEARG.value:
             name = data.decode()
        # other commands have no args
@@ -132,8 +129,6 @@ class Cmd:
 
         if datatype == DataType.CMD_TELL.value:
             data = struct.pack('>H', namesize) + data
-            print(f"\nSENDS CMD_TELL:\n  name: {self.name}, msg:{self.msg}")
-            print(f"NAMEIZE: {namesize}")
 
         return data
 
