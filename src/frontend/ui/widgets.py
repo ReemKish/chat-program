@@ -6,9 +6,9 @@ from PyQt5.QtCore import Qt
 from time import sleep
 import ntpath
 import random
+from . import util
 
 class QFileButton(QtWidgets.QPushButton):
-
     def __init__(self, parent = None):
         super(QFileButton, self).__init__(parent)
         self.installEventFilter(self)
@@ -43,8 +43,10 @@ class QGrowingTextEdit(QtWidgets.QTextEdit):
 
     def keyPressEvent(self, e: QtGui.QKeyEvent) -> None:
         k = e.key()
+        # ENTER: Send message.
         if k == Qt.Key_Return and not e.modifiers():
             if self.send: self.send()
+        # TAB: Complete command or insert 4 spaces.
         elif k == Qt.Key_Tab:
             tc = self.textCursor()
             text = self.toPlainText()
@@ -75,63 +77,67 @@ class QFileAttachment(QtWidgets.QFrame):
     """A TextBrowser widgets that dynamically adjusts its size to fit its contents.
     """
 
-    def __init__(self, file_descriptor, filepath, *args, **kwargs):
+    def __init__(self, uuid, filepath, *args, **kwargs):
         super(QFileAttachment, self).__init__(*args, **kwargs)
-        self.file_descriptor = file_descriptor
+        self.uuid = uuid
         self.filepath = filepath
         self.filename = ntpath.basename(filepath)
 
+        # Get icon from file extension
         fileInfo = QtCore.QFileInfo(filepath)
         iconProvider = QtWidgets.QFileIconProvider()
         icon = iconProvider.icon(fileInfo)
 
-
-
-
-        # inner frame
-        innerFrame = QtWidgets.QFrame(self, objectName="innerFrame")
-        # styleSheet = """
-        #     border: 0px; font-size: 12px; background-color:#84df8f; padding: 0px; margin: 0px;
-        #     """
-
         # layouts
+        innerFrame = QtWidgets.QFrame(self, objectName="innerFrame")
         outerLayout = QtWidgets.QVBoxLayout(self)
         innerLayout = QtWidgets.QVBoxLayout(innerFrame)
         # file button
         fileButton = QtWidgets.QPushButton(innerFrame)
         fileButton.setCursor(QtCore.Qt.PointingHandCursor)
-        fileButton.setText(str(self.filename))
+        fileButton.setText(f" {self.filename}")
         fileButton.setIcon(icon)
-        fileButton.setIconSize(QtCore.QSize(40,40))
-
+        fileButton.setIconSize(QtCore.QSize(30,30))
 
         # progress bar
         bar = QtWidgets.QProgressBar(innerFrame, minimum=0, maximum=100, objectName="bar")
         bar.setValue(random.randint(20,80))
+        bar.setValue(100)
         bar.setMaximumHeight(10)
         bar.setAlignment(QtCore.Qt.AlignCenter)
         bar.setTextVisible(False)
-        bar.setStyleSheet("#bar::chunk { width: 4px; margin: 0.5px; background-color: #6bb173; border-radius: 4px; } ")
 
         innerLayout.addWidget(fileButton)
         innerLayout.addWidget(bar)
 
 
-        innerFrame.setStyleSheet("border: 0px; font-size: 12px; background-color:#84df8f; padding: 0px; margin: 0px;")
+        # innerFrame.setStyleSheet("border: 0px; font-size: 14px; background-color:#84df8f; padding: 0px; margin: 0px;")
         outerLayout.addWidget(innerFrame)
+        fileButton.setFont(QtGui.QFont("Arial", round(14*0.75)))
+        fileButton.setStyleSheet("font-size: 14px; font-family: Arial")
+        print(fileButton.font().family())
+        width = QtGui.QFontMetrics(fileButton.font()).size(0, fileButton.text()).width() + 80  # +30 to show hour
+        width = int(width)
         self.innerFrame = innerFrame
         self.bar = bar
         self.fileButton = fileButton
+        self.setFixedWidth(width)
+        
     def setStyle(self, style_type):
         frame_color = bar_color = None
+        inner_darken = .95 
+        bar_darken = .9
         if style_type == 0:
-            frame_color = "#84df8f"
-            bar_color   = "#6bb173"
+            bar_color   = "#7ae487"
+            inner_color = "#b3ffbc"
+            base_color = "#93ffa0"
         else:
-            frame_color = "#e6e6e6"
-            bar_color   = "#bfbfbf"
-        self.innerFrame.setStyleSheet(f"border: 0px; font-size: 12px; background-color:{frame_color}; padding: 0px; margin: 0px;")
-        self.bar.setStyleSheet(f"#bar::chunk {{ width: 4px; margin: 0.5px; background-color:{bar_color}; border-radius: 4px; }} ")
+            base_color = "#ffffff"
+        inner_color = util.adjust_lightness(base_color, inner_darken)
+        bar_color = util.adjust_lightness(base_color, bar_darken)
+        self.setStyleSheet(f"border-radius:8px; background-color:{base_color}")
+        self.innerFrame.setStyleSheet(f"border: 0px; font-size: 14px; font-family:Arial; background-color:{inner_color}; padding: 0px; margin: 0px;")
+        self.bar.setStyleSheet(f"#bar::chunk {{ margin: 0.5px; background-color:{bar_color}; border-radius: 3px; }} ")
 
 
 class QGrowingTextBrowser(QtWidgets.QTextBrowser):

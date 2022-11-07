@@ -5,6 +5,7 @@ import socket
 import threading
 import time
 import queue
+from uuid import uuid4, UUID
 from random import choice
 import cpp
 from group import Group, Member  # implemented in group.py
@@ -123,6 +124,13 @@ class Server:
                 cpp_msg = f"FILE:{self.curr_file_desc}:{filepath}"
             self.broadcast(cpp.ServerMsg(cpp_msg, name=member.name), exclude=[member])
             self.unicast(member, cpp.ServerMsg(cpp_msg, name=member.name))
+        elif type(cpp_msg) is cpp.FileAttachSend:
+            uuid = uuid4()
+            attachment = cpp.FileAttachRecv(cpp_msg.filename, member.name, uuid)
+            self.broadcast(attachment, exclude=[member])
+            self.unicast(member, attachment)
+        elif type(cpp_msg) is cpp.FileAttachRecv:
+            print("recv")
         elif type(cpp_msg) is bytes:
             self.download_file(cpp_msg)
         elif member.is_muted:

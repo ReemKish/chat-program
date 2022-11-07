@@ -7,6 +7,7 @@ import socket
 import struct
 from time import time
 from Crypto.Cipher import AES
+from uuid import uuid4, UUID  # random uuid
 
 
 class DataType(enum.Enum):
@@ -14,6 +15,8 @@ class DataType(enum.Enum):
     SERVERMSG = 1
     BYTES = 2
     FILE_PART = 3
+    FILE_ATTACH_SEND = 4
+    FILE_ATTACH_RECV = 5
     MASK_CMD = 128  # mask to filter command data types
 
     CMD_TELL = 128
@@ -41,12 +44,13 @@ def encode(cpp_msg):
     elif type(cpp_msg) is bytes: datatype = DataType.BYTES.value
     elif type(cpp_msg) is ServerMsg: datatype = DataType.SERVERMSG.value
     elif type(cpp_msg) is Cmd: datatype = cpp_msg.cmd
+    elif type(cpp_msg) is FileAttachSend: datatype = DataType.FILE_ATTACH_SEND.value
+    elif type(cpp_msg) is FileAttachRecv: datatype = DataType.FILE_ATTACH_RECV.value
     elif cpp_msg is None: datatype = cpp_msg = Cmd(DataType.CMD_QUIT)  # Quit
     return struct.pack('>BI', datatype, datasize) + data
 
 def send(sock, cpp_msg):
-    """encodes a string or a Cmd object cpp_msg into raw data and sends it through sock
-    """
+    """encodes a string or a Cmd object cpp_msg into raw data and sends it through sock"""
     sock.send(encode(cpp_msg))
 
 
@@ -71,6 +75,10 @@ def construct_cpp_msg(datatype, data):
         return ServerMsg.decode(data)
     elif datatype & DataType.MASK_CMD.value == DataType.MASK_CMD.value:  # data is a command
         return Cmd.decode(datatype, data)
+    elif datatype == DataType.FILE_ATTACH_SEND.value:
+        return FileAttachSend.decode(data)
+    elif datatype == DataType.FILE_ATTACH_RECV.value:
+        return FileAttachRecv.decode(data)
     else:
         return None  # invalid datatype
 
@@ -156,28 +164,39 @@ class ServerMsg:
         data = struct.pack('>fH', self.timestamp, namesize) + self.name.encode() + self.msg.encode()
         return data
 
-class FileAttachment:
-    def __init__(self, msg, file_descriptor, timestamp=None, name=""):
-        self.msg = msg
-        self.file_descriptor = file_descriptor
-        self.timestamp = timestamp if timestamp else time()
-        self.name = name
+class FileAttachSend:
+    def __init__(self, filename):
+        self.filename = filename
 
     @staticmethod
     def decode(data):
-        """Decodes the [data] part of a CPP msg of type SERVERMSG into a ServerMsg object.
-        """
-        floatshort_size = struct.calcsize("fH")
-        timestamp, namesize = struct.unpack_from(">fH", data)
-        name = data[floatshort_size:floatshort_size + namesize].decode()
-        msg = data[floatshort_size + namesize:].decode()
-        return ServerMsg(msg, timestamp, name)
+        return FileAttachSend(data.decode())
 
     def get_data(self):
-        """Encodes the msg into a byte-array that is the [data] part of a CPP msg of type SERVERMSG.
-        """
+        return self.filename.encode()
+
+class FileAttachRecv:
+    def __init__(self, filename, name, uuid):
+        self.filename = filename
+        self.name = name
+        self.uuid = uuid
+
+    @staticmethod
+    def decode(data):
+        print(f"decode: data={data}")
+
+        short_size = struct.calcsize("H")
+        namesize, = struct.unpack_from(">H", data)
+        print(namesize)
+        name = data[short_size : short_size+namesize].decode()
+        uuid = UUID(bytes=data[short_size+namesize : short_size+namesize+16])
+        filename = data[short_size+namesize+16:].decode()
+        return FileAttachRecv(filename, name, uuid)
+
+    def get_data(self):
         namesize = len(self.name)
-        data = struct.pack('>fH', self.timestamp, namesize) + self.name.encode() + self.msg.encode()
+        data = struct.pack('>H', namesize) + self.name.encode() + self.uuid.bytes + self.filename.encode()
+        print(f"data={data}")
         return data
 
 class FilePart:
@@ -232,15 +251,12 @@ def srecv(sock, aeskey):
     """
     try:
         nonce, tag, ciphertext = s_recv_raw(sock)
-        # print(f"RECEIVED:\n      nonce: {nonce}\n      tag:{tag}\n      ciphertext:{ciphertext}\n")
         if not (nonce and tag and ciphertext):
             return None
         cipher_aes = AES.new(aeskey, AES.MODE_EAX, nonce)
         cpp_data = cipher_aes.decrypt_and_verify(ciphertext, tag)
-        # print(f"CPP DATA: {cpp_data}")
         data = cpp_data[5:]
         datatype, _ = struct.unpack('>BI', cpp_data[:5])
-        # print(f"DATATYPE: {datatype}")
         return construct_cpp_msg(datatype, data)
     except BlockingIOError:
         return None

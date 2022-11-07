@@ -3,6 +3,10 @@ from .widgets import QGrowingTextEdit, QFileButton
 
 
 class ChatUi(object):
+    SELF_COLOR   = "#93ffa0"
+    OTHER_COLOR  = "#ffffff"
+    SERVER_COLOR = "#dddddd"
+    
     selfmsg_style = "background-color:#93ffa0; border: 3px solid #93ffa0; border-radius: 8px; "
     othermsg_style = "border: 3px solid white; border-radius: 8px"
     servermsg_style = "background-color:#dddddd; border: 3px solid #dddddd; border-radius: 8px"

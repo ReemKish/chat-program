@@ -2,9 +2,10 @@ from time import localtime, strftime
 from backend.client import Client
 from backend import cpp
 from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtWidgets import QFileDialog
 from .window import Window
 from frontend.ui.chat_ui import ChatUi
-from frontend.ui.widgets import QGrowingTextBrowser
+from frontend.ui.widgets import QGrowingTextBrowser, QFileAttachment
 from enum import Enum
 from colorsys import hls_to_rgb
 
@@ -27,9 +28,28 @@ class ChatWindow(Window):
     def extend_ui(self):
         self.ui.msgs = []
         self.ui.sendButton.clicked.connect(self.send_msg)
+        self.ui.fileButton.clicked.connect(self.send_file)
         self.ui.window.resizeEvent = self.resize_event
         self.ui.msgInput.send = self.send_msg
         self.ui.msgInput.cmds = Client.COMMANDS
+        
+        file_attach = QFileAttachment(1, "server.zip")
+        file_attach.setStyle(1)
+        self.ui.msgVLayout.addWidget(file_attach)
+        
+        file_attach = QFileAttachment(2, "game.py")
+        file_attach.setStyle(0)
+        self.ui.msgVLayout.addWidget(file_attach)
+
+        html = '''</head>
+    <body style=" font-family:'Sans Serif'; font-size:9pt; font-weight:400; font-style:normal;">
+    </p>Hello world<p align="right"
+    style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;">
+    <span style=" font-size:7pt; color:#353535;">09:51</span></p>
+    </body>
+    </html>
+</head>'''
+        self.display_msg(MsgType.OTHER, html)
 
     def resize_event(self, event):
         self.ui.resize_event(event)
@@ -60,6 +80,28 @@ class ChatWindow(Window):
         if move_scrollbar:
             scrollbar.setValue(scrollbar.maximum())
 
+    def display_file_attachment(self, msgtype, attachment):
+        fileAttachment = QFileAttachment(attachment.uuid, attachment.filename)
+        fileAttachment.setStyle(0)
+        # if msgtype == MsgType.SELF:
+        #     style = self.ui.selfmsg_style
+        #     self.ui.msgVLayout.addWidget(msgBrowser, 0, QtCore.Qt.AlignRight)
+        # elif msgtype == MsgType.SERVER:
+        #     style = self.ui.servermsg_style
+        #     self.ui.msgVLayout.addWidget(msgBrowser, 0, QtCore.Qt.AlignCenter)
+        # elif msgtype == MsgType.OTHER:
+        #     style = self.ui.othermsg_style
+        #     self.ui.msgVLayout.addWidget(msgBrowser)
+        self.ui.msgVLayout.addWidget(fileAttachment)
+        move_scrollbar = False
+        scrollbar = self.ui.msgArea.verticalScrollBar()
+        if scrollbar.value() == scrollbar.maximum():
+            move_scrollbar = True
+        self.ui.msgs.append(fileAttachment)
+        self.resize_event(self.ui.window)
+        if move_scrollbar:
+            scrollbar.setValue(scrollbar.maximum())
+
     def handle_msg(self, cpp_msg):
         if not cpp_msg.name:
             msgtype = MsgType.SERVER
@@ -69,9 +111,15 @@ class ChatWindow(Window):
             msgtype = MsgType.OTHER
         self.display_msg(msgtype, self.html_format(msgtype, cpp_msg))
 
+    def handle_file_attachment(self, attachment):
+        if attachment.name == self.client.name:
+            msgtype = MsgType.SELF
+        else:
+            msgtype = MsgType.OTHER
+        self.display_file_attachment(msgtype, attachment)
+
     def name_to_color(self, name):
-        """Calculates and returns a member's name color
-        """
+        """Calculates and returns a member's name color"""
         k = hash(name)*6 % 360
         r,g,b = tuple(round(y*256) for y in hls_to_rgb(k/360,.3,.9))
         return f"#{r:02x}{g:02x}{b:02x}"
@@ -122,10 +170,18 @@ style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -q
         self.ui.msgInput.clear()
         self.ui.msgInput.setFocus()
 
+    def send_file(self):
+        """Opens the file select dialog and sends the selected file."""
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        filepath, _ = QFileDialog.getOpenFileName(self.ui.fileButton,"Send File", "", "", options=options)
+        if filepath:
+            attachment = cpp.FileAttachSend(filepath)
+            self.client.ssend(attachment)
+
     def send_cmd(self, cmdline):
         args = cmdline.split(" ")
         cmdname, args = args[0].lower(), args[1:]
-
         try:
             cmdtype = Client.COMMANDS[cmdname]
         except KeyError:
@@ -143,6 +199,8 @@ style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -q
     def received_string(self, cpp_msg):
         if not cpp_msg:  # kicked by server
             self.close()
+        elif type(cpp_msg) is cpp.FileAttachRecv:
+            self.handle_file_attachment(cpp_msg)
         else:
             self.handle_msg(cpp_msg)
 
